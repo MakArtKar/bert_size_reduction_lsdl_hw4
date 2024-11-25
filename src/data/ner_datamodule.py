@@ -11,9 +11,8 @@ from transformers import AutoTokenizer
 def custom_collate_fn(batch):
     input_ids = pad_sequence([torch.LongTensor(item["input_ids"]) for item in batch], batch_first=True)
     attention_mask = pad_sequence([torch.LongTensor(item["attention_mask"]) for item in batch], batch_first=True)
-    ner_tags = pad_sequence([torch.LongTensor(item["ner_tags"]) for item in batch], batch_first=True)
-    token_type_ids = pad_sequence([torch.LongTensor(item["token_type_ids"]) for item in batch], batch_first=True)
-    return {"input_ids": input_ids, "attention_mask": attention_mask, "ner_tags": ner_tags, "token_type_ids": token_type_ids}
+    ner_tags = pad_sequence([torch.LongTensor(item["ner_tags"]) for item in batch], batch_first=True, padding_value=-100)
+    return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": ner_tags}
 
 
 class NERDataModule(LightningDataModule):

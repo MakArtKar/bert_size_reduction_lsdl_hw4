@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, Tuple
 
 import torch
@@ -8,6 +9,8 @@ from torchmetrics.classification.accuracy import Accuracy
 from transformers import AutoModelForTokenClassification
 
 from src.metrics.f1_score_seqeval import SeqevalF1Score
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 class NERLitModule(LightningModule):
@@ -28,19 +31,16 @@ class NERLitModule(LightningModule):
 
         self.net = AutoModelForTokenClassification.from_pretrained(model_name, num_labels=len(self.label_names))
 
-        # loss function
-        self.critertion = torch.nn.CrossEntropyLoss()
-
         # metric objects for calculating and averaging accuracy across batches
-        self.accs = torch.nn.ModuleDict({
-            'train': SeqevalF1Score(self.label_names),
+        self.metrics = torch.nn.ModuleDict({
+            'fit': SeqevalF1Score(self.label_names),
             'val': SeqevalF1Score(self.label_names),
             'test': SeqevalF1Score(self.label_names),
         })
 
         # for averaging loss across batches
         self.losses = torch.nn.ModuleDict({
-            'train': MeanMetric(),
+            'fit': MeanMetric(),
             'val': MeanMetric(),
             'test': MeanMetric(),
         })
@@ -48,35 +48,34 @@ class NERLitModule(LightningModule):
         # for tracking best so far validation accuracy
         self.val_acc_best = MaxMetric()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
+    def forward(self, x: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        return self.net(**x)
 
     def on_train_start(self) -> None:
         # by default lightning executes validation step sanity checks before training starts,
         # so it's worth to make sure validation metrics don't store results from these checks
         self.losses['val'].reset()
-        self.accs['val'].reset()
+        self.metrics['val'].reset()
         self.val_acc_best.reset()
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], mode: str
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        x, y = batch['input_ids'], batch['ner_tags']
-        logits = self.forward(x)
-        loss = self.criterion(logits_student, y)
-        preds = torch.argmax(logits_student, dim=1)
+        output = self.forward(batch)
+        logits, loss = output.logits, output.loss
+        preds = torch.argmax(logits, dim=-1)
 
         self.losses[mode](loss)
-        self.accs[mode](preds, y)
+        self.metrics[mode](preds, batch['labels'])
         self.log(f"{mode}/loss", self.losses[mode], on_step=False, on_epoch=True, prog_bar=True)
-        self.log(f"{mode}/acc", self.accs[mode], on_step=False, on_epoch=True, prog_bar=True)
+        self.log(f"{mode}/f1_score", self.metrics[mode], on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
 
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
-        return self.model_step(batch, 'train')
+        return self.model_step(batch, 'fit')
 
     def on_train_epoch_end(self) -> None:
         pass
@@ -85,11 +84,11 @@ class NERLitModule(LightningModule):
         return self.model_step(batch, 'val')
 
     def on_validation_epoch_end(self) -> None:
-        acc = self.accs['val'].compute()  # get current val acc
+        acc = self.metrics['val'].compute()  # get current val acc
         self.val_acc_best(acc)  # update best so far val acc
         # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("val/acc_best", self.val_acc_best.compute(), sync_dist=True, prog_bar=True)
+        self.log("val/f1_score_best", self.val_acc_best.compute(), sync_dist=True, prog_bar=True)
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         return self.model_step(batch, 'test')
@@ -115,7 +114,3 @@ class NERLitModule(LightningModule):
                 },
             }
         return {"optimizer": optimizer}
-
-
-if __name__ == "__main__":
-    _ = MNISTLitModule(None, None, None, None)

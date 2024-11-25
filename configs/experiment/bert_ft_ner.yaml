@@ -1,0 +1,36 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: ner
+  - override /model: ner
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["ner", "bert-base-cased"]
+
+trainset_length: 14041
+num_training_steps: ${eval:${trainset_length} // ${data.batch_size} * ${trainer.max_epochs} + ${trainer.max_epochs}}
+
+seed: 12345
+
+trainer:
+  max_epochs: 100
+
+logger:
+  wandb:
+    tags: ${tags}
+    name: "bert_ft_ner"
+    project: "bert_size_reduction_lsdl_hw4"
+  aim:
+    experiment: "bert_ft_ner"
+
+callbacks:
+  model_checkpoint:
+    monitor: "val/f1_score"
+
+  early_stopping:
+    monitor: "val/f1_score"
