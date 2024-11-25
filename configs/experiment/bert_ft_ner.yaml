@@ -18,7 +18,7 @@ num_training_steps: ${eval:${trainset_length} // ${data.batch_size} * ${trainer.
 seed: 12345
 
 trainer:
-  max_epochs: 100
+  max_epochs: 200
   gradient_clip_val: 10
 
 logger:
