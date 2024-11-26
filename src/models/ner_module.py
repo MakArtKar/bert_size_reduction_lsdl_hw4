@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import torch
 from lightning import LightningModule
@@ -9,6 +9,7 @@ from torchmetrics.classification.accuracy import Accuracy
 from transformers import AutoModelForTokenClassification
 
 from src.metrics.f1_score_seqeval import SeqevalF1Score
+from src.models.components.factorized_embedding_wrapper import modify_bert_with_factorized_embedding
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -22,6 +23,7 @@ class NERLitModule(LightningModule):
         scheduler: torch.optim.lr_scheduler,
         compile: bool,
         model_name: str = 'bert-base-cased',
+        factorized_embeddings_hidden_size: Optional[bool] = None,
     ) -> None:
         super().__init__()
 
@@ -57,6 +59,9 @@ class NERLitModule(LightningModule):
         self.losses['val'].reset()
         self.metrics['val'].reset()
         self.val_acc_best.reset()
+
+        if self.hparams.factorized_embeddings_hidden_size is not None:
+            self.net = modify_bert_with_factorized_embedding(self.net, self.hparams.factorized_embeddings_hidden_size)
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], mode: str

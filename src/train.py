@@ -86,6 +86,11 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         log.info("Logging hyperparameters!")
         log_hyperparameters(object_dict)
 
+    if cfg.get("model_ckpt_path"):
+        state_dict = torch.load(cfg.get("model_ckpt_path"), weights_only=False)['state_dict']
+        model.load_state_dict(state_dict)
+        print(f"Model loaded weights from {cfg.get('model_ckpt_path')}")
+
     if cfg.get("train"):
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
