@@ -1,0 +1,16 @@
+_target_: src.models.ner_module.NERLitModule
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: True
+  lr: 5e-5
+  weight_decay: 0.01
+
+scheduler:
+  _target_: transformers.get_scheduler
+  _partial_: True
+  name: linear
+  num_warmup_steps: ${eval:0.1 * ${num_training_steps}}
+  num_training_steps: ${num_training_steps}
+
+compile: False
