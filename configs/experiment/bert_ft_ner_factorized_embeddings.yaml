@@ -1,0 +1,25 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - bert_ft_ner
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["ner", "bert-base-cased", "factorized_embeddings"]
+
+model:
+  factorized_embeddings_hidden_size: 64
+
+logger:
+  wandb:
+    tags: ${tags}
+    name: "bert_ft_ner_factorized_embeddings"
+    project: "bert_size_reduction_lsdl_hw4"
+  aim:
+    experiment: "bert_ft_ner_factorized_embeddings"
+
+model_ckpt_path: logs/report/runs/bert_ft_ner/checkpoints/epoch_064.ckpt
