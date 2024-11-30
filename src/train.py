@@ -38,6 +38,7 @@ from src.utils import (
     instantiate_loggers,
     log_hyperparameters,
     task_wrapper,
+    preprocess_state_dict,
 )
 
 log = RankedLogger(__name__, rank_zero_only=True)
@@ -88,7 +89,8 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("model_ckpt_path"):
         state_dict = torch.load(cfg.get("model_ckpt_path"), weights_only=False)['state_dict']
-        model.load_state_dict(state_dict)
+        state_dict = preprocess_state_dict(state_dict, cfg.get("preprocess_ckpt_path", {}))
+        model.load_state_dict(state_dict, strict=False)
         print(f"Model loaded weights from {cfg.get('model_ckpt_path')}")
 
     if cfg.get("train"):
