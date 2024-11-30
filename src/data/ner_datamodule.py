@@ -20,8 +20,7 @@ class NERDataModule(LightningDataModule):
     def __init__(
         self,
         batch_size: int = 64,
-        num_workers: int = 0,
-        pin_memory: bool = False,
+        dataloader_kwargs: Dict[str, Any] = {},
     ) -> None:
         super().__init__()
 
@@ -81,10 +80,9 @@ class NERDataModule(LightningDataModule):
         return DataLoader(
             dataset=self.data_train,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.num_workers,
-            pin_memory=self.hparams.pin_memory,
             shuffle=True,
             collate_fn=custom_collate_fn,
+            **self.hparams.dataloader_kwargs,
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
@@ -95,10 +93,9 @@ class NERDataModule(LightningDataModule):
         return DataLoader(
             dataset=self.data_val,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.num_workers,
-            pin_memory=self.hparams.pin_memory,
             shuffle=False,
             collate_fn=custom_collate_fn,
+            **self.hparams.dataloader_kwargs,
         )
 
     def test_dataloader(self) -> DataLoader[Any]:
@@ -109,10 +106,9 @@ class NERDataModule(LightningDataModule):
         return DataLoader(
             dataset=self.data_test,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.num_workers,
-            pin_memory=self.hparams.pin_memory,
             shuffle=False,
             collate_fn=custom_collate_fn,
+            **self.hparams.dataloader_kwargs,
         )
 
     def teardown(self, stage: Optional[str] = None) -> None:

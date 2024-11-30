@@ -1,7 +1,8 @@
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
+import torch.nn as nn
 from lightning import LightningModule
 from seqeval.metrics import f1_score
 from torchmetrics import MaxMetric, MeanMetric
@@ -22,7 +23,7 @@ class NERLitModule(LightningModule):
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
         compile: bool,
-        model_name: str = 'bert-base-cased',
+        model_name: Union[str, nn.Module] = 'bert-base-cased',
         factorized_embeddings_hidden_size: Optional[bool] = None,
     ) -> None:
         super().__init__()
@@ -31,7 +32,10 @@ class NERLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.net = AutoModelForTokenClassification.from_pretrained(model_name, num_labels=len(self.label_names))
+        if isinstance(model_name, str):
+            self.net = AutoModelForTokenClassification.from_pretrained(model_name, num_labels=len(self.label_names))
+        else:
+            self.net = model_name
 
         # metric objects for calculating and averaging accuracy across batches
         self.metrics = torch.nn.ModuleDict({
@@ -75,18 +79,18 @@ class NERLitModule(LightningModule):
         self.log(f"{mode}/loss", self.losses[mode], on_step=False, on_epoch=True, prog_bar=True)
         self.log(f"{mode}/f1_score", self.metrics[mode], on_step=False, on_epoch=True, prog_bar=True)
 
-        return loss
+        return loss, logits, preds
 
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
-        return self.model_step(batch, 'fit')
+        return self.model_step(batch, 'fit')[0]
 
     def on_train_epoch_end(self) -> None:
         pass
 
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        return self.model_step(batch, 'val')
+        return self.model_step(batch, 'val')[0]
 
     def on_validation_epoch_end(self) -> None:
         acc = self.metrics['val'].compute()  # get current val acc
@@ -96,7 +100,7 @@ class NERLitModule(LightningModule):
         self.log("val/f1_score_best", self.val_acc_best.compute(), sync_dist=True, prog_bar=True)
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        return self.model_step(batch, 'test')
+        return self.model_step(batch, 'test')[0]
 
     def on_test_epoch_end(self) -> None:
         pass
