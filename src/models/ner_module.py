@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, List, Callable
 
 import torch
 import torch.nn as nn
@@ -24,7 +24,8 @@ class NERLitModule(LightningModule):
         scheduler: torch.optim.lr_scheduler,
         compile: bool,
         model_name: Union[str, nn.Module] = 'bert-base-cased',
-        factorized_embeddings_hidden_size: Optional[bool] = None,
+        model_processors: List[Callable] = [],
+        # factorized_embeddings_hidden_size: Optional[bool] = None,
     ) -> None:
         super().__init__()
 
@@ -54,6 +55,10 @@ class NERLitModule(LightningModule):
         # for tracking best so far validation accuracy
         self.val_acc_best = MaxMetric()
 
+    def post_init(self):
+        for model_processor in self.hparams.model_processors:
+            self.net = model_processor(self.net)
+
     def forward(self, x: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         return self.net(**x)
 
@@ -63,9 +68,6 @@ class NERLitModule(LightningModule):
         self.losses['val'].reset()
         self.metrics['val'].reset()
         self.val_acc_best.reset()
-
-        if self.hparams.factorized_embeddings_hidden_size is not None:
-            self.net = modify_bert_with_factorized_embedding(self.net, self.hparams.factorized_embeddings_hidden_size)
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], mode: str

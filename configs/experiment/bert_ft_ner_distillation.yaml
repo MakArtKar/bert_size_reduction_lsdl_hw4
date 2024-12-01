@@ -24,7 +24,6 @@ model:
       intermediate_size: 1024
       num_labels: 9
   teacher_model_name: bert-base-cased
-  factorized_embeddings_hidden_size: 64
   optimizer:
     lr: 5e-4
 

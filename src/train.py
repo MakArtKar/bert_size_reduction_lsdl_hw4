@@ -93,6 +93,9 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         model.load_state_dict(state_dict, strict=False)
         print(f"Model loaded weights from {cfg.get('model_ckpt_path')}")
 
+    if hasattr(model, 'post_init'):
+        model.post_init()
+
     if cfg.get("train"):
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))

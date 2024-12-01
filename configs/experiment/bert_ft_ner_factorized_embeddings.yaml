@@ -12,7 +12,10 @@ defaults:
 tags: ["ner", "bert-base-cased", "factorized_embeddings"]
 
 model:
-  factorized_embeddings_hidden_size: 64
+  model_processors:
+    - _target_: src.models.components.factorized_embedding_wrapper.modify_bert_with_factorized_embedding
+      _partial_: True
+      hidden_size: 64
 
 logger:
   wandb:

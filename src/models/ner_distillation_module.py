@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Optional, Union
+from typing import Any, Dict, Tuple, Optional, Union, List, Callable
 
 import torch
 import torch.nn as nn
@@ -18,10 +18,10 @@ class NERDistillationLitModule(NERLitModule):
         compile: bool,
         model_name: Union[str, nn.Module] = 'prajjwal1/bert-small',
         teacher_model_name: Union[str, nn.Module] = 'bert-base-cased',
-        factorized_embeddings_hidden_size: Optional[bool] = None,
+        model_processors: List[Callable] = [],
         temperature: float = 5,
     ) -> None:
-        super().__init__(optimizer, scheduler, compile, model_name, factorized_embeddings_hidden_size)
+        super().__init__(optimizer, scheduler, compile, model_name, model_processors)
 
         if isinstance(teacher_model_name, str):
             self.teacher = AutoModelForTokenClassification.from_pretrained(teacher_model_name, num_labels=len(self.label_names))
