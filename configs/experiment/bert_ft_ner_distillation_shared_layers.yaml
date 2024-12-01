@@ -29,7 +29,8 @@ model:
       hidden_size: 64
     - _target_: src.models.components.optimized_bert_model.modify_bert_with_weight_sharing
       _partial_: True
-      group_length: 4
+      num_layers: 4
+      in_a_row: False
 
 logger:
   wandb:
