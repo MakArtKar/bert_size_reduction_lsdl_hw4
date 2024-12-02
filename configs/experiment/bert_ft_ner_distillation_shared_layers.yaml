@@ -1,0 +1,41 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - bert_ft_ner_distillation
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["ner", "bert-base-cased", "factorized_embeddings", "distillation", "prajjwal1/bert-mini", "shared_layers"]
+
+model:
+  _target_: src.models.ner_distillation_module.NERDistillationLitModule
+  model_name:
+    _target_: transformers.BertForTokenClassification
+    config:
+      _target_: transformers.BertConfig
+      vocab_size: 28996
+      hidden_size: 768
+      num_attention_heads: 12
+      num_hidden_layers: 12
+      intermediate_size: 2048
+      num_labels: 9
+  model_processors:
+    - _target_: src.models.components.factorized_embedding_wrapper.modify_bert_with_factorized_embedding
+      _partial_: True
+      hidden_size: 64
+    - _target_: src.models.components.optimized_bert_model.modify_bert_with_weight_sharing
+      _partial_: True
+      num_layers: 4
+      in_a_row: False
+
+logger:
+  wandb:
+    tags: ${tags}
+    name: "bert_ft_ner_distillation_shared_layers"
+    project: "bert_size_reduction_lsdl_hw4"
+  aim:
+    experiment: "bert_ft_ner_distillation_shared_layers"

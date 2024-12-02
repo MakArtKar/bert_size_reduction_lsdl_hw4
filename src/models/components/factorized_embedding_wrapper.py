@@ -6,12 +6,12 @@ from transformers import AutoModel, AutoConfig
 class FactorizedEmbedding(nn.Module):
     def __init__(self, vocab_size, embedding_size, hidden_size):
         super(FactorizedEmbedding, self).__init__()
-        self.token_embedding = nn.Embedding(vocab_size, hidden_size)  # Smaller embedding
-        self.projection = nn.Linear(hidden_size, embedding_size)  # Projection layer
+        self.token_embedding = nn.Embedding(vocab_size, hidden_size)
+        self.projection = nn.Linear(hidden_size, embedding_size)
 
     def forward(self, input_ids):
-        x = self.token_embedding(input_ids)  # Shape: (batch_size, seq_length, hidden_size)
-        x = self.projection(x)  # Shape: (batch_size, seq_length, embedding_size)
+        x = self.token_embedding(input_ids)
+        x = self.projection(x)
         return x
 
 
